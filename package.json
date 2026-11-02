@@ -1,0 +1,57 @@
+{
+  "name": "buypowermfb2-ts",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the BuyPower MFB v2 payments API: transfers, refunds, virtual accounts, wallets, transactions and signed webhooks. Zero runtime dependencies.",
+  "license": "MIT",
+  "author": "Otyang (https://github.com/otyang)",
+  "contributors": [
+    "Otyang (https://github.com/otyang)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/otyang/buypowermfb2-ts.git"
+  },
+  "homepage": "https://github.com/otyang/buypowermfb2-ts#readme",
+  "bugs": "https://github.com/otyang/buypowermfb2-ts/issues",
+  "keywords": [
+    "buypower",
+    "buypowermfb",
+    "payments",
+    "fintech",
+    "nigeria",
+    "naira",
+    "sdk",
+    "typescript",
+    "webhooks"
+  ],
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "tsc -p tsconfig.json",
+    "test": "node --test .build/test/client.test.js .build/test/webhooks.test.js",
+    "test:sandbox": "npm run pretest && node --test --test-timeout=600000 .build/test/sandbox.test.js",
+    "example:quickstart": "npm run pretest && node .build/examples/quickstart.js",
+    "example:webhooks": "npm run pretest && node .build/examples/webhook-server.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2"
+  }
+}
