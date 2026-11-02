@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BuyPower, BuyPowerError, ErrorCode, LIVE_URL, SANDBOX_URL, TxStatus, fromCollection, ngn } from "../src/index.js";
+import { BuyPower, BuyPowerError, ErrorCode, LIVE_URL, SANDBOX_URL, TxStatus, fromCollection, ngn, toKobo } from "../src/index.js";
 
 type Handler = (req: Request) => Response | Promise<Response>;
 
@@ -30,7 +30,7 @@ test("transfers.create sends the documented body and auth header", async () => {
     assert.equal(req.headers.get("authorization"), "Bearer sk_test_abc:4827");
     assert.equal(
       await req.text(),
-      '{"source":{"type":"collection","balance":"reserved"},"destination":{"bankCode":"058","accountNumber":"0123456789"},"amount":{"value":5000,"currency":"NGN"},"reference":"payout-1"}',
+      '{"source":{"type":"collection","balance":"reserved"},"destination":{"bankCode":"058","accountNumber":"0123456789"},"amount":{"value":5000,"currency":"NGN"},"narration":"payout","reference":"payout-1"}',
     );
     return ok({ reference: "payout-1", status: "AUTHORIZED", amount: { value: 5000, transactionFee: 0, total: 5000, currency: "NGN" }, destination: { accountNumber: "0123456789", accountName: "JANE DOE" } });
   });
@@ -38,6 +38,7 @@ test("transfers.create sends the documented body and auth header", async () => {
     source: fromCollection("reserved"),
     destination: { bankCode: "058", accountNumber: "0123456789" },
     amount: ngn(5000),
+    narration: "payout",
     reference: "payout-1",
   });
   assert.equal(tr.status, TxStatus.Authorized);
@@ -122,7 +123,7 @@ test("a transfer is never retried, even with a reference", async () => {
     calls++;
     return json(502, { status: "gateway-error", message: "upstream" });
   });
-  await assert.rejects(c.transfers.create({ source: fromCollection("reserved"), destination: { bankCode: "058", accountNumber: "1" }, amount: ngn(1), reference: "payout-1" }));
+  await assert.rejects(c.transfers.create({ source: fromCollection("reserved"), destination: { bankCode: "058", accountNumber: "1" }, amount: ngn(1), narration: "payout", reference: "payout-1" }));
   assert.equal(calls, 1);
 });
 
@@ -188,4 +189,30 @@ test("backoff is capped for large retry counts", () => {
     const d = t["backoff"](attempt, new Error("x"));
     assert.ok(d > 0 && d <= 40_000, `attempt ${attempt}: ${d}`);
   }
+});
+
+test("request amounts are sent in kobo; sub-kobo amounts fail before any request", async () => {
+  const bodies: string[] = [];
+  const c = fakeClient(async (req) => {
+    bodies.push(await req.text());
+    return ok({ reference: "r", status: "AUTHORIZED" });
+  });
+  await c.transfers.create({ source: fromCollection("reserved"), destination: { bankCode: "058", accountNumber: "1" }, amount: ngn(100.1 * 3), narration: "payout" });
+  assert.match(bodies[0] ?? "", /"amount":\{"value":300\.3,"currency":"NGN"\}/, "float noise must be rounded to the kobo");
+
+  for (const v of [100.555, 0.001, 1234.5678]) {
+    await assert.rejects(c.refunds.create({ transactionReference: "TX-1", amount: ngn(v), reason: "test" }), /more than two decimal places/);
+  }
+  for (const v of [0.01, 100.55, 1e9 + 0.99, 0.1 + 0.2]) assert.doesNotThrow(() => toKobo(v), String(v));
+  assert.equal(bodies.length, 1);
+});
+
+test("a transfer without a narration fails before any request", async () => {
+  const c = fakeClient(() => {
+    throw new Error("no request should be sent");
+  });
+  await assert.rejects(
+    c.transfers.create({ source: fromCollection("reserved"), destination: { bankCode: "058", accountNumber: "1" }, amount: ngn(100) } as never),
+    /narration is required/,
+  );
 });

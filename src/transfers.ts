@@ -25,8 +25,8 @@ export interface CreateTransferRequest {
   source: TransferSource;
   destination: { bankCode: string; accountNumber: string };
   amount: Money;
-  /** Statement narration, max 50 characters. */
-  narration?: string;
+  /** Statement narration, max 50 characters. Required by the API, although the docs mark it optional. */
+  narration: string;
   /** Your idempotent client reference. Strongly recommended: reuse it when you retry after reconciling. */
   reference?: string;
   metadata?: Metadata;
@@ -69,7 +69,8 @@ export class Transfers {
    * Never retried by the SDK: on a timeout or 502 the money may still move, so check
    * transactions.get(reference) before retrying yourself with the same reference.
    */
-  create(req: CreateTransferRequest, opts?: RequestOptions): Promise<Transfer> {
+  async create(req: CreateTransferRequest, opts?: RequestOptions): Promise<Transfer> {
+    if (!req.narration) throw new TypeError("buypower: transfer narration is required");
     return this.t.call({ method: "POST", path: "/v2/transfers", body: req }, opts);
   }
 }

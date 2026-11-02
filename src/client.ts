@@ -1,6 +1,6 @@
 import { BuyPowerError } from "./errors.js";
 import type { ListParams, Page, Pagination, RequestOptions } from "./types.js";
-import { hasMore } from "./types.js";
+import { hasMore, toKobo } from "./types.js";
 
 export const VERSION = "0.1.0";
 export const LIVE_URL = "https://api.buypowermfb.net";
@@ -98,7 +98,12 @@ export class Transport {
     if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
     if (opts.requestId) headers["x-request-id"] = opts.requestId;
     Object.assign(headers, opts.headers);
-    const body = req.body === undefined ? undefined : JSON.stringify(req.body);
+    // Request amounts are sent rounded to the kobo; see toKobo.
+    const body = req.body === undefined ? undefined : JSON.stringify(req.body, (key, value: unknown) =>
+      key === "amount" && typeof value === "object" && value !== null && typeof (value as { value?: unknown }).value === "number"
+        ? { ...value, value: toKobo((value as { value: number }).value) }
+        : value,
+    );
 
     const retryable = req.method === "GET" || req.retryable === true;
     for (let attempt = 0; ; attempt++) {

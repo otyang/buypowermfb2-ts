@@ -12,6 +12,20 @@ export function ngn(value: number): Money {
   return { value, currency: "NGN" };
 }
 
+/**
+ * Rounds v to two decimal places, allowing only floating-point noise (a few
+ * units in the last place) to be rounded away. A real third decimal place
+ * throws, because BuyPower would otherwise round it silently.
+ */
+export function toKobo(v: number): number {
+  const kobo = v * 100;
+  const k = Math.round(kobo);
+  if (!Number.isFinite(v) || Math.abs(kobo - k) > Math.max(1e-6, Math.abs(kobo) * 1e-13)) {
+    throw new RangeError(`buypower: amount ${v} has more than two decimal places; BuyPower works in kobo, so round it first`);
+  }
+  return k / 100;
+}
+
 /** A counterparty bank account. */
 export interface AccountParty {
   accountName: string | null;

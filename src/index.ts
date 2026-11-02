@@ -63,7 +63,7 @@ export class BuyPower {
 
 export { LIVE_URL, SANDBOX_URL, VERSION, type ClientOptions, type Environment } from "./client.js";
 export { BuyPowerError, ErrorCode, isNotFound, type FieldError } from "./errors.js";
-export { hasMore, ngn, type AccountParty, type Currency, type ListParams, type Metadata, type Money, type Page, type Pagination, type RequestOptions } from "./types.js";
+export { hasMore, ngn, toKobo, type AccountParty, type Currency, type ListParams, type Metadata, type Money, type Page, type Pagination, type RequestOptions } from "./types.js";
 export { fromCollection, fromWallet, type CollectionBalanceName, type CreateTransferRequest, type Transfer, type TransferAmount, type TransferSource } from "./transfers.js";
 export { type CreateRefundRequest, type Refund, type RefundListParams } from "./refunds.js";
 export { type Bank, type ResolvedAccount } from "./banking.js";
